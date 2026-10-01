@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ai Là Triệu Phú Hóa Học</title>
+    
+    <!-- KaTeX CSS & JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0b1536;
+            --primary-blue: #1a3c8a;
+            --hover-blue: #2a52b3;
+            --gold: #ffc107;
+            --correct-green: #28a745;
+            --wrong-red: #dc3545;
+            --text-light: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body {
+            background: radial-gradient(circle at center, #1b2a5a 0%, var(--bg-color) 100%);
+            color: var(--text-light);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Utility */
+        .hidden { display: none !important; opacity: 0; pointer-events: none; }
+        
+        /* Chống vỡ layout khi công thức KaTeX quá dài */
+        .katex-display { 
+            overflow-x: auto; 
+            overflow-y: hidden; 
+            max-width: 100%; 
+            padding: 5px 0;
+        }
+        .katex { font-size: 1.1em !important; }
+        
+        /* Screens */
+        .screen {
+            width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            position: absolute; top: 0; left: 0;
+            background: radial-gradient(circle at center, #1b2a5a 0%, var(--bg-color) 100%);
+            z-index: 10;
+        }
+
+        /* Start Screen */
+        #start-screen { z-index: 20; padding: 20px; overflow-y: auto; }
+        #start-screen h1 { font-size: 3.5rem; color: var(--gold); text-shadow: 2px 2px 8px #000; text-align: center; margin-bottom: 10px; }
+        #start-screen h2 { font-size: 1.3rem; color: #add8e6; text-align: center; margin-bottom: 30px; max-width: 800px; line-height: 1.5; }
+        .input-group { margin-bottom: 15px; text-align: center; width: 100%; max-width: 400px; }
+        .input-group input { padding: 15px 20px; font-size: 1.2rem; border-radius: 30px; border: 2px solid var(--primary-blue); background: rgba(255,255,255,0.1); color: white; width: 100%; text-align: center; outline: none; }
+        .input-group input::placeholder { color: #ccc; }
+        .btn-start { background: linear-gradient(to bottom, #ffc107, #b38700); color: #000; font-size: 1.5rem; font-weight: bold; padding: 15px 50px; border-radius: 40px; border: 2px solid #fff; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: none; margin-top: 15px; }
+        .btn-start:hover { transform: scale(1.05); }
+
+        /* Game Screen Layout */
+        #game-screen { flex-direction: row; align-items: stretch; z-index: 15; }
+        .main-area { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 20px; 
+            position: relative; 
+            overflow-y: auto; 
+            overflow-x: hidden;
+        }
+        .side-panel { width: 300px; background: rgba(0,0,0,0.4); border-left: 2px solid var(--primary-blue); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; }
+
+        /* Header */
+        .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 1.2rem; font-weight: bold; color: var(--gold); flex-shrink: 0; }
+        .header-center { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+        .total-timer-container { font-size: 1.4rem; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 20px; border: 1px solid var(--gold); }
+        .total-timer-warning { color: var(--wrong-red); animation: pulse 1s infinite; }
+        
+        .timer-container { position: relative; width: 70px; height: 70px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.5); border-radius: 50%; border: 3px solid var(--gold); font-size: 1.8rem; flex-shrink: 0; }
+        .timer-warning { border-color: var(--wrong-red); color: var(--wrong-red); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        
+        /* Question & Options */
+        .question-box { background: linear-gradient(to right, transparent, var(--primary-blue), transparent); padding: 20px; text-align: center; font-size: 1.4rem; border: 2px solid #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; line-height: 1.5; text-shadow: 1px 1px 2px #000; flex-shrink: 0; word-wrap: break-word; }
+        
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; flex-shrink: 0; margin-bottom: 20px;}
+        .option { background: var(--primary-blue); border: 2px solid #add8e6; padding: 15px; font-size: 1.2rem; border-radius: 20px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; text-align: left; word-wrap: break-word; line-height: 1.4;}
+        .option:hover:not(.disabled):not(.locked) { background: var(--hover-blue); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .option.selected { background: var(--gold); color: #000; border-color: #fff; }
+        .option.correct { background: var(--correct-green) !important; color: white !important; border-color: #fff !important; }
+        .option.wrong { background: var(--wrong-red) !important; color: white !important; border-color: #fff !important; }
+        .option.disabled { opacity: 0; pointer-events: none; }
+        .option.locked { pointer-events: none; }
+        .opt-label { font-weight: bold; color: var(--gold); margin-right: 15px; font-size: 1.4rem; flex-shrink: 0; }
+        .option.selected .opt-label { color: #000; }
+        .opt-content { flex: 1; }
+
+        /* Submit Button */
+        .submit-container { text-align: center; height: 60px; flex-shrink: 0; padding-bottom: 20px;}
+        .btn-submit { background: #ff9800; color: white; font-size: 1.3rem; font-weight: bold; padding: 12px 40px; border-radius: 30px; border: 2px solid #fff; cursor: pointer; transition: 0.2s; display: none; margin: 0 auto;}
+        .btn-submit:hover { background: #e68a00; transform: scale(1.05); }
+
+        /* Ladder */
+        .ladder { flex: 1; display: flex; flex-direction: column-reverse; gap: 4px; font-size: 1.1rem; overflow-y: auto; padding-right: 5px; }
+        .ladder-step { padding: 4px 15px; border-radius: 15px; text-align: right; color: #888; transition: 0.3s; }
+        .ladder-step.active { background: var(--gold); color: #000; font-weight: bold; box-shadow: 0 0 10px rgba(255, 193, 7, 0.5); }
+        .ladder-step.passed { color: var(--gold); }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background-color: var(--primary-blue); border-radius: 10px; border: 1px solid #add8e6; }
+
+        /* Overlays / Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+        .modal-content { background: var(--primary-blue); border: 3px solid var(--gold); border-radius: 15px; padding: 25px; width: 100%; max-width: 600px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto;}
+        .modal-title { font-size: 2.2rem; margin-bottom: 15px; font-weight: bold; }
+        .title-correct { color: var(--correct-green); }
+        .title-wrong { color: var(--wrong-red); }
+        .explanation { font-size: 1.2rem; line-height: 1.5; margin-bottom: 25px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border-left: 5px solid var(--gold); text-align: left;}
+        .btn-next { background: var(--gold); color: #000; font-size: 1.2rem; padding: 10px 30px; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+        .btn-next:hover { transform: scale(1.05); }
+
+        /* End Screen */
+        #end-screen { padding: 20px; overflow-y: auto; }
+        .stat-box { background: rgba(0,0,0,0.5); border: 2px solid var(--gold); padding: 20px; border-radius: 15px; font-size: 1.3rem; text-align: left; line-height: 2; width: 100%; max-width: 450px; margin-bottom: 20px; }
+        .stat-val { color: var(--gold); font-weight: bold; float: right; }
+        #save-status { margin-top: 15px; font-size: 1.1rem; text-align: center; font-weight: bold; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.3); }
+        
+        /* ================= MOBILE RESPONSIVE ================= */
+        @media (max-width: 900px) {
+            #start-screen h1 { font-size: 2.2rem; }
+            #start-screen h2 { font-size: 1rem; }
+            
+            #game-screen { flex-direction: column; }
+            
+            .side-panel { 
+                width: 100%; height: auto; 
+                border-left: none; border-top: 2px solid var(--primary-blue); 
+                flex-direction: row; align-items: center; justify-content: space-around; 
+                padding: 10px; flex-shrink: 0;
+            }
+            .ladder { display: none; } /* Ẩn thang điểm trên Mobile để gọn */
+            
+            .main-area { padding: 10px; }
+            .game-header { font-size: 1rem; margin-bottom: 15px; justify-content: space-between; }
+            .total-timer-container { font-size: 1.1rem; padding: 4px 10px; }
+            .timer-container { width: 55px; height: 55px; font-size: 1.3rem; }
+            
+            .question-box { font-size: 1.2rem; padding: 15px; margin-bottom: 15px; border-width: 1px; }
+            
+            .options-grid { grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px;}
+            .option { font-size: 1.1rem; padding: 12px; border-radius: 15px; border-width: 1px;}
+            .opt-label { font-size: 1.2rem; margin-right: 10px; }
+            
+            .btn-submit { width: 100%; max-width: 300px; padding: 12px; font-size: 1.2rem; }
+            
+            .modal-title { font-size: 1.8rem; }
+            .explanation { font-size: 1.1rem; padding: 10px; }
+            .stat-box { font-size: 1.1rem; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="screen">
+        <h1>AI LÀ TRIỆU PHÚ HÓA HỌC</h1>
+        <h2>BÀI 1 – ESTER – LIPID<br>BÀI 2 – XÀ PHÒNG VÀ CHẤT GIẶT RỬA<br>BÀI 4 – GLUCOSE VÀ FRUCTOSE<br>BÀI 5 – SACCHAROSE VÀ MALTOSE</h2>
+        
+        <div class="input-group">
+            <input type="text" id="player-name" placeholder="Nhập tên Học sinh / Nhóm..." autocomplete="off">
+        </div>
+        <div class="input-group">
+            <input type="text" id="player-class" placeholder="Nhập Lớp (VD: 12A1)..." autocomplete="off">
+        </div>
+        <button class="btn-start" onclick="startGame()">BẮT ĐẦU</button>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen hidden">
+        <div class="main-area">
+            <div class="game-header">
+                <div style="width: 70px;"></div> <!-- Spacer để cân bằng giao diện trên desktop -->
+                <div class="header-center">
+                    <div id="progress-text">CÂU 1/20 | Điểm: 0</div>
+                    <div class="total-timer-container">TỔNG GIAN: <span id="total-timer-display">05:00</span></div>
+                </div>
+                <div class="timer-container" id="timer-display">30</div>
+            </div>
+
+            <!-- Vùng câu hỏi tự do dãn nở -->
+            <div class="question-box" id="question-text">Đang tải câu hỏi...</div>
+
+            <!-- Vùng đáp án -->
+            <div class="options-grid">
+                <div class="option" id="opt-0" onclick="selectOption(0)">
+                    <span class="opt-label">A:</span> <span class="opt-content"></span>
+                </div>
+                <div class="option" id="opt-1" onclick="selectOption(1)">
+                    <span class="opt-label">B:</span> <span class="opt-content"></span>
+                </div>
+                <div class="option" id="opt-2" onclick="selectOption(2)">
+                    <span class="opt-label">C:</span> <span class="opt-content"></span>
+                </div>
+                <div class="option" id="opt-3" onclick="selectOption(3)">
+                    <span class="opt-label">D:</span> <span class="opt-content"></span>
+                </div>
+            </div>
+
+            <div class="submit-container">
+                <button class="btn-submit" id="btn-submit" onclick="confirmAnswer()">CHỐT ĐÁP ÁN</button>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div class="ladder" id="ladder">
+                <!-- Auto generated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- FEEDBACK MODAL -->
+    <div id="feedback-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-title" id="fb-title">CHÍNH XÁC!</div>
+            <div style="font-weight: bold; margin-bottom: 10px; color: var(--gold);">KIẾN THỨC CẦN NHỚ:</div>
+            <div class="explanation" id="fb-explanation"></div>
+            <button class="btn-next" onclick="nextQuestion()">CÂU TIẾP THEO</button>
+        </div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen" class="screen hidden">
+        <h1>KẾT QUẢ</h1>
+        <div class="stat-box">
+            <div>Họ tên/Nhóm: <span class="stat-val" id="end-name"></span></div>
+            <div>Lớp: <span class="stat-val" id="end-class"></span></div>
+            <div>Số câu đúng: <span class="stat-val" id="end-correct" style="color:var(--correct-green)"></span></div>
+            <div>Số câu sai: <span class="stat-val" id="end-wrong" style="color:var(--wrong-red)"></span></div>
+            <div>Tổng điểm: <span class="stat-val" id="end-score"></span></div>
+            <div>Điểm quy đổi: <span class="stat-val" id="end-scale"></span></div>
+            <div>Thời gian làm bài: <span class="stat-val" id="end-time"></span></div>
+            
+            <!-- Khu vực hiển thị trạng thái lưu lên Google Sheet -->
+            <div id="save-status">⏳ Đang gửi dữ liệu...</div>
+        </div>
+        <button class="btn-start" onclick="location.reload()">CHƠI LẠI LƯỢT MỚI</button>
+    </div>
+
+<script>
+/* ======================== DATA (40 CÂU) ======================== */
+const questionsData = [
+    // BÀI 1
+    { q: "Ester có công thức \\( \\mathrm{CH_3COOC_2H_5} \\) được gọi là gì?", opts: ["ethyl acetate", "methyl acetate", "ethyl formate", "propyl acetate"], ans: 0, exp: "Ester có công thức \\( \\mathrm{CH_3COOC_2H_5} \\) được gọi là ethyl acetate." },
+    { q: "So với alcohol và carboxylic acid có phân tử khối tương đương, ester có nhiệt độ sôi thấp hơn vì các phân tử ester không tạo được liên kết nào với nhau?", opts: ["hydrogen", "cộng hóa trị", "ion", "kim loại"], ans: 0, exp: "Ester có nhiệt độ sôi thấp hơn vì các phân tử ester không tạo được liên kết hydrogen với nhau." },
+    { q: "Điền chất còn thiếu vào phương trình thủy phân: \\( \\mathrm{CH_3COOC_2H_5 + H_2O \\xleftrightarrow{H^+, t^\\circ} CH_3COOH} \\) + ...", opts: ["\\( \\mathrm{C_2H_5OH} \\)", "\\( \\mathrm{CH_3OH} \\)", "\\( \\mathrm{C_3H_7OH} \\)", "\\( \\mathrm{CH_3CHO} \\)"], ans: 0, exp: "Phản ứng thủy phân ester trong môi trường acid sinh ra carboxylic acid và alcohol tương ứng: \\( \\mathrm{C_2H_5OH} \\)." },
+    { q: "Điền chất còn thiếu vào phương trình thủy phân: \\( \\mathrm{CH_3COOCH_3 + NaOH \\xrightarrow{t^\\circ} CH_3COONa} \\) + ...", opts: ["\\( \\mathrm{CH_3OH} \\)", "\\( \\mathrm{C_2H_5OH} \\)", "\\( \\mathrm{H_2O} \\)", "\\( \\mathrm{CH_3CHO} \\)"], ans: 0, exp: "Phản ứng thủy phân ester trong môi trường kiềm (xà phòng hóa) tạo ra muối và alcohol. Sản phẩm là \\( \\mathrm{CH_3OH} \\)." },
+    { q: "Điền chất còn thiếu để hoàn thành phương trình điều chế: ... + \\( \\mathrm{C_2H_5OH \\xleftrightarrow{H_2SO_4\\text{ đặc}, t^\\circ} CH_3COOC_2H_5 + H_2O} \\)", opts: ["\\( \\mathrm{CH_3COOH} \\)", "\\( \\mathrm{HCOOH} \\)", "\\( \\mathrm{C_2H_5COOH} \\)", "\\( \\mathrm{CH_3CHO} \\)"], ans: 0, exp: "Ester thường được điều chế bằng phản ứng ester hóa giữa carboxylic acid (\\( \\mathrm{CH_3COOH} \\)) và alcohol." },
+    { q: "Chất béo là triester của glycerol với chất nào?", opts: ["acid béo", "amino acid", "carboxylic acid đa chức", "alcohol đơn chức"], ans: 0, exp: "Chất béo là triester của glycerol với acid béo, gọi chung là triglyceride." },
+    { q: "Acid béo là carboxylic acid có đặc điểm gì, hầu hết có mạch carbon dài, không phân nhánh và có số carbon chẵn?", opts: ["đơn chức", "đa chức", "tạp chức", "vô cơ"], ans: 0, exp: "Acid béo là carboxylic acid đơn chức, hầu hết có mạch carbon dài, không phân nhánh và có số nguyên tử carbon chẵn." },
+    { q: "Khi phân tử chất béo chứa nhiều gốc acid béo không no, chất béo thường ở trạng thái nào?", opts: ["thể lỏng", "thể rắn", "thể khí", "thể plasma"], ans: 0, exp: "Khi chứa nhiều gốc acid béo không no, chất béo thường ở thể lỏng. (Nếu no thì ở thể rắn)." },
+    { q: "Điền sản phẩm còn thiếu: \\( \\mathrm{(RCOO)_3C_3H_5 + 3NaOH \\xrightarrow{t^\\circ} 3RCOONa} \\) + ...", opts: ["\\( \\mathrm{C_3H_5(OH)_3} \\)", "\\( \\mathrm{C_2H_5OH} \\)", "\\( \\mathrm{H_2O} \\)", "\\( \\mathrm{RCOOH} \\)"], ans: 0, exp: "Sản phẩm của phản ứng xà phòng hóa gồm muối của acid béo và glycerol \\( \\mathrm{C_3H_5(OH)_3} \\)." },
+    { q: "Sản phẩm của phản ứng hydrogen hóa: \\( \\mathrm{(C_{17}H_{33}COO)_3C_3H_5 + 3H_2 \\xrightarrow{xt, t^\\circ, p}} \\) ...", opts: ["\\( \\mathrm{(C_{17}H_{35}COO)_3C_3H_5} \\)", "\\( \\mathrm{(C_{17}H_{31}COO)_3C_3H_5} \\)", "\\( \\mathrm{(C_{15}H_{31}COO)_3C_3H_5} \\)", "\\( \\mathrm{C_{17}H_{35}COOH} \\)"], ans: 0, exp: "Phản ứng hydrogen hóa chuyển chất béo không no dạng lỏng thành chất béo no dạng rắn \\( \\mathrm{(C_{17}H_{35}COO)_3C_3H_5} \\)." },
+    
+    // BÀI 2
+    { q: "Xà phòng là hỗn hợp muối sodium hoặc potassium của chất nào và các chất phụ gia?", opts: ["acid béo", "amino acid", "acid vô cơ", "alcohol"], ans: 0, exp: "Xà phòng là hỗn hợp muối sodium hoặc potassium của acid béo và các chất phụ gia." },
+    { q: "Chất giặt rửa tổng hợp thường là muối sodium alkylsulfate hoặc...?", opts: ["sodium alkylbenzenesulfonate", "sodium chloride", "sodium stearate", "sodium acetate"], ans: 0, exp: "Chất giặt rửa tổng hợp thường là muối sodium alkylsulfate hoặc sodium alkylbenzenesulfonate." },
+    { q: "Xà phòng và chất giặt rửa đều có cấu tạo gồm hai phần, trong đó phần phân cực là đầu gì?", opts: ["ưa nước", "kị nước", "ưa dầu", "không phân cực"], ans: 0, exp: "Xà phòng và chất giặt rửa đều có cấu tạo gồm hai phần: phần phân cực là đầu ưa nước." },
+    { q: "Xà phòng và chất giặt rửa đều có cấu tạo gồm hai phần, trong đó phần không phân cực là đuôi gì?", opts: ["kị nước", "ưa nước", "phân cực mạnh", "ion"], ans: 0, exp: "Xà phòng và chất giặt rửa đều có cấu tạo gồm hai phần: phần không phân cực là đuôi kị nước." },
+    { q: "Trong quả bồ hòn và bồ kết có chứa chất nào có khả năng giặt rửa, khi tiếp xúc với nước tạo lớp bọt nhẹ?", opts: ["saponin", "glucose", "cellulose", "protein"], ans: 0, exp: "Trong quả bồ hòn và bồ kết có saponin có khả năng giặt rửa tương tự xà phòng." },
+    { q: "Khi xà phòng hoặc chất giặt rửa tiếp xúc với chất bẩn, phần đuôi kị nước xâm nhập vào đâu?", opts: ["vết bẩn", "phân tử nước", "bọt xà phòng", "thành chậu rửa"], ans: 0, exp: "Khi tiếp xúc với chất bẩn, phần đuôi kị nước xâm nhập vào vết bẩn, chia nhỏ và phân tán vào nước." },
+    { q: "Điền chất còn thiếu vào phương trình tổng quát: \\( \\mathrm{(RCOO)_3C_3H_5} \\) + 3... \\( \\mathrm{\\xrightarrow{t^\\circ} 3RCOONa + C_3H_5(OH)_3} \\)", opts: ["\\( \\mathrm{NaOH} \\)", "\\( \\mathrm{KOH} \\)", "\\( \\mathrm{H_2O} \\)", "\\( \\mathrm{NaCl} \\)"], ans: 0, exp: "Xà phòng được sản xuất từ chất béo bằng phản ứng xà phòng hóa với dung dịch kiềm \\( \\mathrm{NaOH} \\)." },
+    { q: "Phản ứng xà phòng hóa tripalmitin: \\( \\mathrm{(C_{15}H_{31}COO)_3C_3H_5 + 3NaOH \\xrightarrow{t^\\circ}} \\) 3... + \\( \\mathrm{C_3H_5(OH)_3} \\)", opts: ["\\( \\mathrm{C_{15}H_{31}COONa} \\)", "\\( \\mathrm{C_{17}H_{35}COONa} \\)", "\\( \\mathrm{C_{17}H_{33}COONa} \\)", "\\( \\mathrm{C_{15}H_{31}COOH} \\)"], ans: 0, exp: "Xà phòng hóa tripalmitin tạo ra muối tương ứng là sodium palmitate: \\( \\mathrm{C_{15}H_{31}COONa} \\)." },
+    { q: "Ngoài chất béo, xà phòng và chất giặt rửa tổng hợp còn có thể được sản xuất từ nguồn hydrocarbon trong...?", opts: ["dầu mỏ", "khí thiên nhiên", "than đá", "quặng mỏ"], ans: 0, exp: "Ngoài chất béo, xà phòng và chất giặt rửa tổng hợp còn được sản xuất từ nguồn hydrocarbon trong dầu mỏ." },
+    { q: "Cần sử dụng xà phòng và chất giặt rửa tổng hợp một cách hợp lí, ... , đúng chức năng và công dụng của chúng.", opts: ["an toàn", "tiết kiệm", "đắt tiền", "nhanh chóng"], ans: 0, exp: "Cần sử dụng xà phòng và chất giặt rửa tổng hợp một cách hợp lí, an toàn, đúng chức năng và công dụng." },
+    
+    // BÀI 4
+    { q: "Carbohydrate là những hợp chất hữu cơ ..., thường có công thức chung là \\( \\mathrm{C_n(H_2O)_m} \\).", opts: ["tạp chức", "đơn chức", "đa chức", "vô cơ"], ans: 0, exp: "Carbohydrate là những hợp chất hữu cơ tạp chức, thường có công thức chung là \\( \\mathrm{C_n(H_2O)_m} \\)." },
+    { q: "Dựa vào phản ứng ..., carbohydrate được phân thành ba loại: monosaccharide, disaccharide và polysaccharide.", opts: ["thủy phân", "tráng gương", "oxi hóa", "cộng"], ans: 0, exp: "Dựa vào phản ứng thủy phân, carbohydrate được phân thành ba loại chính." },
+    { q: "Glucose và fructose đều thuộc monosaccharide và có chung công thức phân tử là gì?", opts: ["\\( \\mathrm{C_6H_{12}O_6} \\)", "\\( \\mathrm{C_{12}H_{22}O_{11}} \\)", "\\( \\mathrm{(C_6H_{10}O_5)_n} \\)", "\\( \\mathrm{C_2H_6O} \\)"], ans: 0, exp: "Glucose và fructose là đồng phân của nhau, đều có công thức phân tử là \\( \\mathrm{C_6H_{12}O_6} \\)." },
+    { q: "Ở dạng mạch hở, glucose có công thức cấu tạo nào sau đây?", opts: ["\\( \\mathrm{CH_2OH[CHOH]_4CHO} \\)", "\\( \\mathrm{CH_2OH[CHOH]_3COCH_2OH} \\)", "\\( \\mathrm{CH_3[CH_2]_4CHO} \\)", "\\( \\mathrm{CH_2OH[CHOH]_4COOH} \\)"], ans: 0, exp: "Ở dạng mạch hở, glucose có công thức: \\( \\mathrm{CH_2OH[CHOH]_4CHO} \\)." },
+    { q: "Trong phân tử glucose mạch hở có nhiều nhóm -OH liền kề và một nhóm chức nào?", opts: ["aldehyde", "ketone", "carboxylic acid", "ester"], ans: 0, exp: "Trong phân tử glucose mạch hở có nhiều nhóm -OH liền kề (polyalcohol) và một nhóm chức aldehyde (-CHO)." },
+    { q: "Ở dạng mạch hở, fructose có công thức cấu tạo nào sau đây?", opts: ["\\( \\mathrm{CH_2OH[CHOH]_3COCH_2OH} \\)", "\\( \\mathrm{CH_2OH[CHOH]_4CHO} \\)", "\\( \\mathrm{CH_2OH[CHOH]_4COCH_3} \\)", "\\( \\mathrm{CH_2OH[CHOH]_3CHO} \\)"], ans: 0, exp: "Ở dạng mạch hở, fructose có công thức: \\( \\mathrm{CH_2OH[CHOH]_3COCH_2OH} \\)." },
+    { q: "Trong phân tử fructose mạch hở có nhiều nhóm -OH liền kề và một nhóm chức nào?", opts: ["ketone", "aldehyde", "carboxylic acid", "ester"], ans: 0, exp: "Trong phân tử fructose mạch hở có nhiều nhóm -OH liền kề và một nhóm chức ketone (>C=O)." },
+    { q: "Fructose là chất rắn, dễ tan trong nước, có vị ngọt hơn glucose và có nhiều trong...?", opts: ["mật ong", "đường mía", "hoa quả xanh", "lúa mì"], ans: 0, exp: "Fructose có nhiều trong quả ngọt, đặc biệt có nhiều trong mật ong." },
+    { q: "Điền chất còn thiếu: Ở điều kiện thường, \\( \\mathrm{2C_6H_{12}O_6} \\) + ... \\( \\rightarrow \\mathrm{(C_6H_{11}O_6)_2Cu + 2H_2O} \\)", opts: ["\\( \\mathrm{Cu(OH)_2} \\)", "\\( \\mathrm{CuO} \\)", "\\( \\mathrm{Cu} \\)", "\\( \\mathrm{CuSO_4} \\)"], ans: 0, exp: "Ở điều kiện thường, glucose (polyalcohol) tác dụng với \\( \\mathrm{Cu(OH)_2} \\) tạo dung dịch phức màu xanh lam." },
+    { q: "Sản phẩm của phản ứng giữa glucose và \\( \\mathrm{Cu(OH)_2} \\) ở điều kiện thường là gì: \\( \\mathrm{2C_6H_{12}O_6 + Cu(OH)_2 \\rightarrow} \\) ... + \\( \\mathrm{2H_2O} \\)", opts: ["\\( \\mathrm{(C_6H_{11}O_6)_2Cu} \\)", "\\( \\mathrm{C_6H_{12}O_7} \\)", "\\( \\mathrm{(C_6H_{11}O_6)Cu} \\)", "\\( \\mathrm{Cu_2O} \\)"], ans: 0, exp: "Hiện tượng kết tủa \\( \\mathrm{Cu(OH)_2} \\) tan tạo dung dịch màu xanh lam của phức \\( \\mathrm{(C_6H_{11}O_6)_2Cu} \\)." },
+
+    // BÀI 5
+    { q: "Saccharose và maltose đều thuộc loại disaccharide, có cùng công thức phân tử là gì?", opts: ["\\( \\mathrm{C_{12}H_{22}O_{11}} \\)", "\\( \\mathrm{C_6H_{12}O_6} \\)", "\\( \\mathrm{(C_6H_{10}O_5)_n} \\)", "\\( \\mathrm{C_{12}H_{24}O_{12}} \\)"], ans: 0, exp: "Saccharose và maltose là đồng phân của nhau, có cùng công thức phân tử là \\( \\mathrm{C_{12}H_{22}O_{11}} \\)." },
+    { q: "Phân tử saccharose được cấu tạo từ một đơn vị \\( \\alpha \\)-glucose và một đơn vị nào sau đây?", opts: ["\\( \\beta \\)-fructose", "\\( \\alpha \\)-fructose", "\\( \\beta \\)-glucose", "galactose"], ans: 0, exp: "Phân tử saccharose được cấu tạo từ một đơn vị \\( \\alpha \\)-glucose và một đơn vị \\( \\beta \\)-fructose." },
+    { q: "Hai đơn vị monosaccharide trong saccharose liên kết với nhau qua liên kết nào?", opts: ["\\( \\alpha \\)-1,2-glycoside", "\\( \\alpha \\)-1,4-glycoside", "\\( \\beta \\)-1,4-glycoside", "\\( \\alpha \\)-1,6-glycoside"], ans: 0, exp: "Hai đơn vị monosaccharide trong saccharose liên kết với nhau qua cầu nối oxygen, gọi là liên kết \\( \\alpha \\)-1,2-glycoside." },
+    { q: "Phân tử maltose được cấu tạo từ hai đơn vị \\( \\alpha \\)-glucose, liên kết với nhau qua liên kết nào?", opts: ["\\( \\alpha \\)-1,4-glycoside", "\\( \\alpha \\)-1,2-glycoside", "\\( \\beta \\)-1,4-glycoside", "\\( \\alpha \\)-1,6-glycoside"], ans: 0, exp: "Phân tử maltose được cấu tạo từ hai đơn vị \\( \\alpha \\)-glucose, liên kết với nhau qua liên kết \\( \\alpha \\)-1,4-glycoside." },
+    { q: "Saccharose chỉ tồn tại ở dạng mạch vòng; maltose có thể tồn tại đồng thời ở dạng mạch vòng và dạng mở vòng do còn nhóm nào tự do?", opts: ["-OH hemiacetal", "-OH alcohol", "-CHO", "-COOH"], ans: 0, exp: "Maltose còn nhóm -OH hemiacetal tự do nên có thể mở vòng tạo dạng aldehyde, trong khi saccharose thì không." },
+    { q: "Điền chất còn thiếu vào phương trình tạo chất phản ứng: \\( \\mathrm{CuSO_4 + 2NaOH \\rightarrow} \\) ... + \\( \\mathrm{Na_2SO_4} \\)", opts: ["\\( \\mathrm{Cu(OH)_2} \\)", "\\( \\mathrm{Cu_2O} \\)", "\\( \\mathrm{CuO} \\)", "\\( \\mathrm{Cu} \\)"], ans: 0, exp: "Kết tủa copper(II) hydroxide được tạo thành theo phương trình: \\( \\mathrm{CuSO_4 + 2NaOH \\rightarrow Cu(OH)_2 + Na_2SO_4} \\)." },
+    { q: "Khi thêm dung dịch saccharose, kết tủa \\( \\mathrm{Cu(OH)_2} \\) tan, tạo thành dung dịch có màu gì?", opts: ["xanh lam", "tím", "đỏ gạch", "vàng nhạt"], ans: 0, exp: "Saccharose có nhiều nhóm -OH kề nhau (polyalcohol) nên hòa tan được \\( \\mathrm{Cu(OH)_2} \\) tạo dung dịch màu xanh lam." },
+    { q: "Điền công thức của fructose vào phương trình thủy phân saccharose: \\( \\mathrm{C_{12}H_{22}O_{11} + H_2O \\xrightarrow{H^+, t^\\circ} C_6H_{12}O_6 (glucose) +} \\) ... (fructose)", opts: ["\\( \\mathrm{C_6H_{12}O_6} \\)", "\\( \\mathrm{C_6H_{10}O_5} \\)", "\\( \\mathrm{C_6H_{14}O_6} \\)", "\\( \\mathrm{C_5H_{10}O_5} \\)"], ans: 0, exp: "Thủy phân saccharose tạo ra glucose và fructose. Fructose có công thức phân tử là \\( \\mathrm{C_6H_{12}O_6} \\)." },
+    { q: "Saccharose không phản ứng trực tiếp với thuốc thử Tollens vì trong dung dịch không thể mở vòng để tạo nhóm chức nào?", opts: ["aldehyde", "ketone", "ester", "carboxylic acid"], ans: 0, exp: "Saccharose không có tính khử, không tham gia phản ứng tráng bạc vì không mở vòng tạo nhóm aldehyde (-CHO)." },
+    { q: "Maltose có trong một số hạt nảy mầm và chủ yếu được tạo thành trong quá trình thủy phân chất nào?", opts: ["tinh bột", "cellulose", "saccharose", "glycogen"], ans: 0, exp: "Maltose chủ yếu được tạo thành trong quá trình thủy phân tinh bột (dưới tác dụng của enzyme amylase hoặc acid)." }
+];
+
+/* ======================== GAME SETTINGS ======================== */
+const MAX_Q = 20; // 20 câu / lượt
+let selectedQuestions = []; 
+let currentIdx = 0;
+let score = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let playerName = "";
+let playerClass = "";
+
+let timeSec = 30; // 30s per question
+let timerInt;
+let totalTimeSec = 300; // 5 phút total
+let totalTimerInt;
+let startTime;
+
+let currentOrder = []; 
+let hasSelected = false;
+let lockOptions = false;
+
+// URL Google Apps Script (Webhook) MỚI CẬP NHẬT
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwAiI8Hfmm54GZ36Xyk6bBPdcXn86NjL4PfKP08JJUzIaflmAn2Tp85RX7RHrQGrZcDbQ/exec";
+
+function renderMath() {
+    renderMathInElement(document.body, {
+        delimiters: [ 
+            {left: "\\(", right: "\\)", display: false}, 
+            {left: "\\[", right: "\\]", display: true} 
+        ],
+        throwOnError: false
+    });
+}
+
+function buildLadder() {
+    const lad = document.getElementById('ladder');
+    lad.innerHTML = '';
+    for (let i = 1; i <= MAX_Q; i++) {
+        let div = document.createElement('div');
+        div.className = 'ladder-step';
+        div.id = 'step-' + i;
+        div.innerText = i + " 🔹 " + (i * 0.5);
+        lad.appendChild(div);
+    }
+}
+
+function updateLadder() {
+    for (let i = 1; i <= MAX_Q; i++) {
+        let el = document.getElementById('step-' + i);
+        if (el) {
+            el.classList.remove('active', 'passed');
+            if (i === currentIdx + 1) el.classList.add('active');
+            else if (i <= currentIdx) el.classList.add('passed');
+        }
+    }
+}
+
+// Hàm xáo trộn mảng chuẩn Fisher-Yates
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+}
+
+function startGame() {
+    // Lấy thông tin Tên
+    playerName = document.getElementById('player-name').value.trim();
+    if (!playerName) playerName = "Người chơi ẩn danh";
+    document.getElementById('end-name').innerText = playerName;
+    
+    // Lấy thông tin Lớp
+    playerClass = document.getElementById('player-class').value.trim();
+    if (!playerClass) playerClass = "Chưa nhập";
+    document.getElementById('end-class').innerText = playerClass;
+    
+    // Lựa chọn 20 câu hỏi hạn chế trùng lặp
+    let used = JSON.parse(localStorage.getItem('usedQs')) || [];
+    let pool = Array.from({length: questionsData.length}, (_, i) => i);
+    
+    let unasked = pool.filter(i => !used.includes(i));
+    let asked = pool.filter(i => used.includes(i));
+    
+    shuffleArray(unasked);
+    shuffleArray(asked);
+    
+    let chosenIndexes = [];
+    if (unasked.length >= MAX_Q) {
+        chosenIndexes = unasked.slice(0, MAX_Q);
+        used = used.concat(chosenIndexes); 
+    } else {
+        chosenIndexes = unasked;
+        let needed = MAX_Q - unasked.length;
+        let fromAsked = asked.slice(0, needed);
+        chosenIndexes = chosenIndexes.concat(fromAsked);
+        used = chosenIndexes; // Reset bộ nhớ khi đã lặp hết
+    }
+    
+    localStorage.setItem('usedQs', JSON.stringify(used));
+    selectedQuestions = chosenIndexes.map(i => questionsData[i]);
+
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    
+    // Reset Game State
+    startTime = new Date();
+    score = 0; correctCount = 0; wrongCount = 0; currentIdx = 0;
+    totalTimeSec = 300; 
+    
+    buildLadder();
+    startTotalTimer();
+    loadQuestion();
+}
+
+function startTotalTimer() {
+    clearInterval(totalTimerInt);
+    updateTotalTimerDisplay();
+    
+    totalTimerInt = setInterval(() => {
+        totalTimeSec--;
+        updateTotalTimerDisplay();
+        
+        if (totalTimeSec <= 30 && totalTimeSec > 0) {
+            document.getElementById('total-timer-display').classList.add('total-timer-warning');
+        }
+        
+        if (totalTimeSec <= 0) {
+            clearInterval(totalTimerInt);
+            alert("Đã hết 5 phút! Trò chơi sẽ tự động kết thúc.");
+            endGame();
+        }
+    }, 1000);
+}
+
+function updateTotalTimerDisplay() {
+    let m = Math.floor(totalTimeSec / 60);
+    let s = totalTimeSec % 60;
+    document.getElementById('total-timer-display').innerText = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+}
+
+function loadQuestion() {
+    if (currentIdx >= MAX_Q) { endGame(); return; }
+    
+    let qData = selectedQuestions[currentIdx];
+    
+    document.getElementById('progress-text').innerText = `CÂU ${currentIdx + 1}/${MAX_Q} | Điểm: ${score}`;
+    updateLadder();
+    document.getElementById('question-text').innerHTML = qData.q;
+    
+    currentOrder = [0, 1, 2, 3];
+    shuffleArray(currentOrder);
+
+    for (let i = 0; i < 4; i++) {
+        let optEl = document.getElementById('opt-' + i);
+        optEl.className = 'option'; // reset classes
+        optEl.querySelector('.opt-content').innerHTML = qData.opts[currentOrder[i]];
+    }
+    
+    document.getElementById('btn-submit').style.display = 'none';
+    hasSelected = false;
+    lockOptions = false;
+
+    renderMath();
+    startTimer();
+}
+
+function selectOption(idx) {
+    if (lockOptions) return;
+    
+    for (let i = 0; i < 4; i++) {
+        document.getElementById('opt-' + i).classList.remove('selected');
+    }
+    document.getElementById('opt-' + idx).classList.add('selected');
+    hasSelected = true;
+    document.getElementById('btn-submit').style.display = 'inline-block';
+}
+
+function confirmAnswer() {
+    if (!hasSelected) return;
+    
+    clearInterval(timerInt);
+    lockOptions = true;
+    document.getElementById('btn-submit').style.display = 'none';
+    
+    let selectedDomIdx = -1;
+    for (let i = 0; i < 4; i++) {
+        if (document.getElementById('opt-' + i).classList.contains('selected')) {
+            selectedDomIdx = i; 
+            break;
+        }
+    }
+    
+    // ans luôn là vị trí 0 trong mảng gốc của data
+    let isCorrect = (currentOrder[selectedDomIdx] === selectedQuestions[currentIdx].ans);
+    let correctDomIdx = currentOrder.indexOf(selectedQuestions[currentIdx].ans);
+    
+    document.getElementById('opt-' + correctDomIdx).classList.add('correct');
+    
+    if (isCorrect) {
+        score += 0.5; // Mỗi câu 0.5đ
+        correctCount++;
+        showFeedback(true);
+    } else {
+        document.getElementById('opt-' + selectedDomIdx).classList.add('wrong');
+        wrongCount++;
+        showFeedback(false);
+    }
+}
+
+function showFeedback(isCorrect) {
+    setTimeout(() => {
+        const modal = document.getElementById('feedback-modal');
+        const title = document.getElementById('fb-title');
+        
+        title.innerText = isCorrect ? "CHÍNH XÁC!" : "CHƯA CHÍNH XÁC!";
+        title.className = "modal-title " + (isCorrect ? "title-correct" : "title-wrong");
+        
+        document.getElementById('fb-explanation').innerHTML = selectedQuestions[currentIdx].exp;
+        modal.classList.remove('hidden');
+        renderMath();
+    }, 800); 
+}
+
+function nextQuestion() {
+    document.getElementById('feedback-modal').classList.add('hidden');
+    currentIdx++;
+    loadQuestion();
+}
+
+function startTimer() {
+    clearInterval(timerInt);
+    timeSec = 30; // 30 giây/câu
+    let tDisplay = document.getElementById('timer-display');
+    tDisplay.innerText = timeSec;
+    tDisplay.classList.remove('timer-warning');
+    
+    timerInt = setInterval(() => {
+        timeSec--;
+        tDisplay.innerText = timeSec;
+        
+        if (timeSec <= 5 && timeSec > 0) {
+            tDisplay.classList.add('timer-warning');
+        }
+        
+        if (timeSec <= 0) {
+            clearInterval(timerInt);
+            timeOutHandler();
+        }
+    }, 1000);
+}
+
+function timeOutHandler() {
+    lockOptions = true;
+    document.getElementById('btn-submit').style.display = 'none';
+    wrongCount++;
+    
+    let correctDomIdx = currentOrder.indexOf(selectedQuestions[currentIdx].ans);
+    document.getElementById('opt-' + correctDomIdx).classList.add('correct');
+    showFeedback(false);
+}
+
+function endGame() {
+    clearInterval(timerInt);
+    clearInterval(totalTimerInt);
+    
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('feedback-modal').classList.add('hidden');
+    
+    document.getElementById('end-screen').classList.remove('hidden');
+    
+    let maxScore = MAX_Q * 0.5;
+    
+    document.getElementById('end-correct').innerText = correctCount + "/" + MAX_Q;
+    document.getElementById('end-wrong').innerText = wrongCount + "/" + MAX_Q;
+    document.getElementById('end-score').innerText = score + "/" + maxScore;
+    
+    let scale100 = Math.round((score / maxScore) * 100);
+    document.getElementById('end-scale').innerText = scale100 + "/100";
+    
+    let endTime = new Date();
+    let diff = Math.floor((endTime - startTime) / 1000);
+    if (diff > 300) diff = 300; 
+    
+    let m = Math.floor(diff / 60);
+    let s = diff % 60;
+    let timeString = (m < 10 ? '0' + m : m) + ":" + (s < 10 ? '0' + s : s);
+    document.getElementById('end-time').innerText = timeString;
+    
+    // --- GỬI DỮ LIỆU ĐẾN GOOGLE SHEET ---
+    saveDataToGoogleSheet(playerName, playerClass, correctCount, wrongCount, score, timeString);
+}
+
+function saveDataToGoogleSheet(name, className, correct, wrong, finalScore, time) {
+    const saveStatusElement = document.getElementById('save-status');
+    saveStatusElement.innerText = "⏳ Đang gửi dữ liệu lên hệ thống...";
+    saveStatusElement.style.color = "var(--gold)";
+
+    // Đóng gói dữ liệu để gửi đi
+    const formData = new URLSearchParams();
+    
+    // Gửi gộp Tên và Lớp vào 1 cột Name
+    let combinedName = name;
+    if (className !== "Chưa nhập") {
+        combinedName = name + " - Lớp " + className;
+    }
+    
+    formData.append("name", combinedName);
+    formData.append("class", className); 
+    formData.append("correct", correct);
+    formData.append("wrong", wrong);
+    formData.append("score", finalScore);
+    formData.append("time", time);
+
+    fetch(GAS_URL, {
+        method: "POST",
+        body: formData
+    })
+    .then(response => {
+        saveStatusElement.innerText = "✅ Đã lưu kết quả thành công!";
+        saveStatusElement.style.color = "var(--correct-green)";
+    })
+    .catch(error => {
+        console.error("Lỗi khi lưu kết quả:", error);
+        saveStatusElement.innerText = "⚠️ Lỗi khi lưu kết quả (vui lòng kiểm tra lại kết nối mạng).";
+        saveStatusElement.style.color = "var(--wrong-red)";
+    });
+}
+</script>
+
+</body>
+</html>
